@@ -50,7 +50,7 @@
                     <a class="nav-link" href="#">Student Records</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Grades/Points</a>
+                    <a class="nav-link <?= $this->request->uri() == '/grades' ? 'active' : '' ?>" href="/grades">Grades/Points</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">Course Schedule</a>
@@ -62,7 +62,7 @@
             <?php if($this->user->is_admin): ?>
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item">
-                    <a class="nav-link" href="/students">Students</a>
+                    <a class="nav-link <?= $this->request->uri() == '/students' ? 'active' : '' ?>" href="/students">Students</a>
                 </li>
             </ul>
             <?php endif; ?>

@@ -97,11 +97,32 @@ class Router
             }
         });
 
-        $klein->respond('GET', '/students', function ($request, $response, ServiceProvider $service, $app) {
+        $klein->respond('GET', '/grades', function ($request, $response, ServiceProvider $service, $app) {
             if (isset($service->user)) {
+                if($service->user->is_admin){
+                    $response->redirect('/');
+                    return;
+                }
+                $service->mission_complete = false;
+
+                $stmt = $app->db->prepare("SELECT * FROM lectures INNER JOIN lessons ON lessons.lesson_id = lectures.lesson_id where user_id = ?");
+                $stmt->execute([$service->user->user_id]);
+                $service->lectures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $service->layout('views/layout.php');
+                $service->render('views/grades2.php');
+            } else {
+                $response->redirect("/login");
+            }
+        });
+
+        /*
+         * Try this:    xx%' UNION ALL select user_id, name, surname, username, password from users  --
+         */
+        $klein->respond('GET', '/students', function ($request, $response, ServiceProvider $service, $app) {
+            if (isset($service->user) && $service->user->is_admin) {
                 $service->layout('views/layout.php');
                 $search = $request->param('search');
-                /// Try this:    xx%' UNION ALL select user_id, name, surname, username, password from users  --
                 $stmt = $app->db->prepare("SELECT * FROM users where is_admin = 0");
                 $stmt->execute();
                 $service->students = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -111,15 +132,82 @@ class Router
             }
         });
 
-        $klein->respond('GET', '/student/[:student_id]/grades', function ($request, $response, ServiceProvider $service, $app) {
-            if (isset($service->user)) {
+
+        $klein->respond(['GET', 'POST'], '/student/[:student_id]/grades', function (Request $request, $response, ServiceProvider $service, $app) {
+            if (isset($service->user) && $service->user->is_admin) {
+                $service->mission_complete = false;
+                $stmt = $app->db->prepare("SELECT * FROM users where user_id = ?");
+                $stmt->execute([$request->student_id]);
+                if ($service->student = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
+                    $service->update_error = false;
+                    if ($request->method() == 'POST') {
+                        if ($service->student['is_locked']) {
+                            $service->update_error = true;
+                        } else {
+                            $stmt = $app->db->prepare("UPDATE lectures SET grade = ? where lesson_id = ? and user_id = ?");
+                            if ($request->student_id == 1) {
+                                $service->mission_complete = 1;
+                            }
+                            foreach ($request->param('grades') as $lesson_id => $value) {
+                                $stmt->execute([$value, $lesson_id, $request->student_id]);
+                            }
+                        }
+                    }
+
+                    $stmt = $app->db->prepare("SELECT * FROM lectures INNER JOIN lessons ON lessons.lesson_id = lectures.lesson_id where user_id = ?");
+                    $stmt->execute([$request->student_id]);
+                    $service->lectures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $service->layout('views/layout.php');
+                    $service->render('views/grades.php');
+                } else {
+                    $response->redirect("/students");
+                }
+            } else {
+                $response->redirect("/login");
+            }
+        });
+
+        /*
+         * Try this:   ', is_locked = '0
+         */
+        $klein->respond(['GET', 'POST'], '/student/[:student_id]/edit', function (Request $request, $response, ServiceProvider $service, $app) {
+            if (isset($service->user) && $service->user->is_admin) {
+
+                $country = $request->param('country');
+                $faculty = $request->param('faculty');
+                $field = $request->param('field');
+                $user_id = $request->student_id;
+
+                if ($request->method() == 'POST') {
+                    $stmt = $app->db->prepare("UPDATE users SET country = '$country', faculty = '$faculty', field = '$field' where user_id = $user_id ");
+                    $stmt->execute();
+                }
 
                 $stmt = $app->db->prepare("SELECT * FROM users where user_id = ?");
                 $stmt->execute([$request->student_id]);
-                if($service->student = $stmt->fetch(PDO::FETCH_ASSOC)){
+                if ($service->student = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $service->layout('views/layout.php');
-                    $service->render('views/grades.php');
-                }else{
+                    $service->render('views/edit.php');
+                } else {
+                    $response->redirect("/students");
+                }
+            } else {
+                $response->redirect("/login");
+            }
+        });
+
+
+        $klein->respond(['GET'], '/student/[:student_id]/lock', function (Request $request, $response, ServiceProvider $service, $app) {
+            if (isset($service->user) && $service->user->is_admin) {
+                $stmt = $app->db->prepare("SELECT * FROM users where user_id = ?");
+                $stmt->execute([$request->student_id]);
+                if ($service->student = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $stmt = $app->db->prepare("UPDATE users set is_locked = 1 where user_id = ?");
+                    $stmt->execute([$service->student['user_id']]);
+                    $response->redirect("/student/" . $service->student['user_id'] . '/grades');
+                } else {
                     $response->redirect("/students");
                 }
             } else {
