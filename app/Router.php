@@ -97,5 +97,35 @@ class Router
             }
         });
 
+        $klein->respond('GET', '/students', function ($request, $response, ServiceProvider $service, $app) {
+            if (isset($service->user)) {
+                $service->layout('views/layout.php');
+                $search = $request->param('search');
+                /// Try this:    xx%' UNION ALL select user_id, name, surname, username, password from users  --
+                $stmt = $app->db->prepare("SELECT * FROM users where is_admin = 0");
+                $stmt->execute();
+                $service->students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $service->render('views/students.php');
+            } else {
+                $response->redirect("/login");
+            }
+        });
+
+        $klein->respond('GET', '/student/[:student_id]/grades', function ($request, $response, ServiceProvider $service, $app) {
+            if (isset($service->user)) {
+
+                $stmt = $app->db->prepare("SELECT * FROM users where user_id = ?");
+                $stmt->execute([$request->student_id]);
+                if($service->student = $stmt->fetch(PDO::FETCH_ASSOC)){
+                    $service->layout('views/layout.php');
+                    $service->render('views/grades.php');
+                }else{
+                    $response->redirect("/students");
+                }
+            } else {
+                $response->redirect("/login");
+            }
+        });
+
     }
 }

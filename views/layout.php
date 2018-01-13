@@ -44,7 +44,7 @@
         <nav class="col-sm-3 col-md-2 d-none d-sm-block bg-light sidebar">
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="#">Home <span class="sr-only">(current)</span></a>
+                    <a class="nav-link <?= $this->request->uri() == '/' ? 'active' : '' ?>" href="/">Home <span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">Student Records</a>
@@ -55,13 +55,17 @@
                 <li class="nav-item">
                     <a class="nav-link" href="#">Course Schedule</a>
                 </li>
-            </ul>
-
-            <ul class="nav nav-pills flex-column">
                 <li class="nav-item">
-                    <a class="nav-link" href="/staff">Academic Staff</a>
+                    <a class="nav-link <?= $this->request->uri() == '/staff' ? 'active' : '' ?>" href="/staff">Academic Staff</a>
                 </li>
             </ul>
+            <?php if($this->user->is_admin): ?>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="/students">Students</a>
+                </li>
+            </ul>
+            <?php endif; ?>
         </nav>
 
         <main role="main" class="col-sm-9 ml-sm-auto col-md-10 pt-3">
