@@ -1,4 +1,4 @@
-#Campus System OWASP
+# Campus System OWASP
 
 To install the sqlite database run reset page (ex:http://localhost:8000/reset)
 
